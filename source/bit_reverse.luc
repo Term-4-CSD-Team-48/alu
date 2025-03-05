@@ -1,6 +1,3 @@
-// This module reverses given input bit
-// MSB becomes LSB and vice versa for the rest of the bits
-// For example, 11110000 becomes 00001111
 module bit_reverse #(
     SIZE = 32  : SIZE > 0
 )

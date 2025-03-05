@@ -8,7 +8,7 @@ module shifter #(
     output shift[SIZE]
 ) {
     #SIZE(SIZE) {
-        //If want to have more shifters need to uncomment the relelvant lines
+        //If want to have more shifters need to uncomment the relevant lines
         //x_bit_left_shifter left_shifters[SHIFTERS](#SHIFT({5b10000, 5b01000, 5b00100, 5b00010, 5b00001}))
         //x_bit_right_shifter right_shifters[SHIFTERS](#SHIFT({5b10000, 5b01000, 5b00100, 5b00010, 5b00001}))
         //x_bit_left_shifter left_shifters[SHIFTERS](#SHIFT({3b100, 3b010, 3b001}))

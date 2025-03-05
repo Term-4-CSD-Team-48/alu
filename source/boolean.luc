@@ -9,7 +9,6 @@ module boolean #(
     mux_4 mux_4[SIZE]
     
     always {
-        // implement boolean unit logic here
         mux_4.s0 = a
         mux_4.s1 = b
         //repeat(i, SIZE, 0, 1) {

@@ -1,8 +1,8 @@
 // mux_4.luc
 module mux_4 (
-    input s0,  // selectors
+    input s0,
     input s1,
-    input in[4], // inputs 
+    input in[4],
     output out
   ) {
 

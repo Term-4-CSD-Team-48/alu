@@ -1,6 +1,4 @@
 module x_bit_right_shifter #(
-  // parameter declaration, to be set during module instantiation
-  // default value given is 8
   SIZE = 32 : SIZE > 1,
   SHIFT = 16 : SHIFT > -1 & SHIFT < SIZE
   )(
@@ -10,19 +8,10 @@ module x_bit_right_shifter #(
     output out[SIZE]
   ) {
   
-  // module declarations
-  // instantiate mux_2 (32 of them)
-  // other useful intermediary signals, e.g: shifted_bits[32]
   mux_2 mux_2[SIZE] 
   sig shifted_bits[SIZE]
   
   always {
-    // assign value to shifted_bits[32] depending on the value of SHIFT
-    // connect the selector of each mux_2 with shift 
-    // 
-    // use a repeat-loop to: 
-    // connect input[0] of each mux_2 with a[i]
-    // connect input[1] of each mux_2 with the shifted_bits[i] 
     shifted_bits = c{SHIFTx{pad}, a[SIZE-1:SHIFT]}
     repeat(i, SIZE, 0, 1) {
         mux_2.in[i][0] = a[i]

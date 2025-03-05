@@ -12,7 +12,6 @@ module adder #(
     rca rca(#SIZE(SIZE))
     sig xb31
     always {
-        // implement adder/subtractor unit logic here
         rca.a = a
         rca.b = (SIZEx{alufn_signal[0]})^b
         rca.cin = alufn_signal[0]

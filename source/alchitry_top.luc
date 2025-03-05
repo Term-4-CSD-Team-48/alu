@@ -35,8 +35,6 @@ module alchitry_top (
         
         usb_tx = usb_rx          // loop serial port
         
-
-        // to test ALU 
         io_segment = alu_manual.io_segment
         io_select = alu_manual.io_select         
         io_led = alu_manual.io_led
