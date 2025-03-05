@@ -1,0 +1,67 @@
+module alu #(
+    SIZE = 32 : SIZE > 1
+)(
+    input a[SIZE],
+    input b[SIZE],
+    input alufn[6],
+    output out[SIZE],
+    output z,
+    output v,
+    output n
+) {
+    adder adder(#SIZE(SIZE))
+    compare compare
+    boolean boolean(#SIZE(SIZE))
+    shifter shifter(#SIZE(SIZE))
+    multiplier multiplier(#SIZE(SIZE))
+    mux_2 mux_2[SIZE]
+    mux_4 mux_4[SIZE]
+    
+    always {
+        adder.a = a
+        adder.b = b
+        adder.alufn_signal = alufn
+        
+        compare.z = adder.z
+        compare.v = adder.v
+        compare.n = adder.n
+        compare.alufn = alufn
+        
+        boolean.a = a
+        boolean.b = b
+        boolean.alufn = alufn
+        
+        shifter.a = a
+        shifter.b = b
+        shifter.alufn = alufn
+        
+        multiplier.a = a
+        multiplier.b = b      
+        
+        repeat(i, SIZE, 0, 1) {
+            mux_2.in[i][0] = adder.out[i]
+            mux_2.in[i][1] = multiplier.mul[i]
+        }
+        mux_2.s0 = SIZEx{alufn[1]}
+        
+        repeat(i, SIZE, 0, 1) {
+            mux_4.in[i][0] = mux_2.out[i]
+            mux_4.in[i][1] = boolean.bool[i]
+            mux_4.in[i][2] = shifter.shift[i]
+            mux_4.in[i][3] = 0
+        }
+        mux_4.in[SIZE-1][3] = compare.cmp
+        mux_4.s0 = SIZEx{alufn[4]}
+        mux_4.s1 = SIZEx{alufn[5]}
+        
+        out = mux_4.out
+        
+        if (alufn == 6b111111) {
+            out = a / b
+        }
+        
+        z = adder.z
+        v = adder.v
+        n = adder.n  
+    }
+}

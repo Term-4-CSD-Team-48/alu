@@ -1,0 +1,29 @@
+testbench alu_test_bench {
+    sig clk
+    sig alu32_a
+    sig alu32_b
+    sig alu32_alufn[6]
+    
+    alu alu32(#SIZE(32), .a(alu32_a), .b(alu32_b), .alufn(alu32_alufn))
+
+    fun tick_clock() {
+        clk = 1
+        $silent_tick() // tick without capturing signals
+        clk = 0
+        $tick()
+    }
+
+    test test_alu32 {
+        // initialize the clock
+        alu32_a = 0
+        alu32_b = 0
+        alu32_alufn = 6b000000
+        clk = 0
+        $tick()
+        
+        $print(alu32.z)
+        $print(alu32.v)
+        $print(alu32.n)
+        $print(alu32.out)
+    }
+}

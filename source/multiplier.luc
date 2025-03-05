@@ -1,0 +1,32 @@
+module multiplier #(
+    SIZE = 32 : SIZE > 2
+)(
+    input a[SIZE],
+    input b[SIZE],
+    output mul[SIZE]
+) {
+    sig partials[SIZE][SIZE]
+    #SIZE(SIZE) {
+        rca rcas[SIZE]
+    }
+    
+    always {
+        repeat(i, SIZE, 0, 1) {
+            partials[i] = SIZEx{0}
+            repeat(j, SIZE-i, 0, 1) {
+                if (b[i]) {
+                    partials[i][j+i] = a[j]
+                }
+            }            
+        }
+        rcas.cin = 0
+        rcas.a = partials
+        repeat(i, SIZE-1, 1, 1) {
+            rcas.b[i] = rcas.s[i-1]
+        }
+        rcas.b[0] = 0
+        
+        // implement multiplier unit logic here
+        mul = rcas.s[SIZE-1]
+    }
+}
