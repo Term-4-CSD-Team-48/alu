@@ -206,6 +206,9 @@ module alu_manual_tester#(
                 
                 // Complete test
                 testing.d = alu_fsm_tester.completed ? Testing.COMPLETED : testing.q
+            Testing.COMPLETED:
+                // Preserve alufn as it is affected by io_dip while others arent.
+                alufn_dff.d = alufn_dff.q
         }
     }
 }
