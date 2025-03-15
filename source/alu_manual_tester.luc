@@ -193,7 +193,7 @@ module alu_manual_tester#(
                 testing.d = io_dip[0][7] ? Testing.TESTING : testing.q
             Testing.TESTING: 
                 // Surrenders alu to alu_fsm_tester
-                alu_fsm_tester.start = 1
+                alu_fsm_tester.start = io_dip[0][7]
                 alu.a = alu_fsm_tester.a
                 alu.b = alu_fsm_tester.b
                 alu.alufn = alu_fsm_tester.alufn

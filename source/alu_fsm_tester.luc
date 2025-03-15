@@ -37,7 +37,7 @@ module alu_fsm_tester (
         .rst(rst) {
             dff testing[$width(Testing)](#INIT(Testing.NOT_YET))
             dff counter[SLOW_CLOCK_SIZE]
-            dff speed_pointer[$clog2(SLOW_CLOCK_SIZE)](#INIT(SLOW_CLOCK_SIZE - 1))
+            dff speed_pointer[$clog2(SLOW_CLOCK_SIZE)](#INIT(0))
             dff current_test_dff[$width(Current_Test)](#INIT(Current_Test.A))
             dff completed_dff
             dff failed_dff
@@ -48,13 +48,19 @@ module alu_fsm_tester (
     }
     
     sig slow_clock
+    sig a_sig[32]
+    sig b_sig[32]
+    sig alufn_sig[6]
     
     always {
         // Not on any tests now (dff inits with first test which is 0)
         current_test = current_test_dff.q
-        a = 0
-        b = 0
-        alufn = 0
+        a_sig = 0
+        a = a_sig
+        b_sig = 0
+        b = b_sig
+        alufn_sig = 0
+        alufn = alufn_sig
         completed = completed_dff.q
         failed = failed_dff.q
         
@@ -86,17 +92,24 @@ module alu_fsm_tester (
                 if (slow_clock_edge.out) {
                     case(current_test_dff.q) {
                         Current_Test.A:
-                            a = 1
-                            a_dff.d = 1
-                            b = 2
-                            b_dff.d = 2
-                            alufn = 6b000000
-                            alufn_dff.d = 6b000000
+                            a_sig = 1
+                            b_sig = 2
+                            alufn_sig = 6b000000
                             testing.d = alu_out == 32h0003 ? testing.q : Testing.FAILED
                             current_test_dff.d = Current_Test.B  
                         Current_Test.B:
+                            a_sig = 1
+                            b_sig = 2
+                            alufn_sig = 6b000001
                             testing.d = Testing.COMPLETED
                     }
+                    a_sig[0] = start ? a_sig[0] : ~a_sig[0] // Simulate an error
+                    a = a_sig
+                    a_dff.d = a_sig
+                    b = b_sig
+                    b_dff.d = b_sig
+                    alufn = alufn_sig  
+                    alufn_dff.d = alufn_sig
                 }
             Testing.FAILED:
                 failed_dff.d = 1
