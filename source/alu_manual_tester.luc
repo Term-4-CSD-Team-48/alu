@@ -1,5 +1,5 @@
 module alu_manual_tester#(
-    CLK_FREQ ~ 1000 : CLK_FREQ > 0) 
+    CLK_FREQ = 1000 : CLK_FREQ > 0) 
 (
     input clk,  // clock
     input rst,  // reset
@@ -7,19 +7,205 @@ module alu_manual_tester#(
     input io_dip[3][8],
     output io_led[3][8],
     output io_segment[8],
-    output io_select[4]
+    output io_select[4],
+    output led[8]
 ) {
+    const CLK_FREQ = $is_sim() ? 1000 : 100000000  // Needed for idk
+    const SEVEN_SEG_DIV = $is_sim() ? 1 : 14
     
-    alu alu
+    enum Testing {
+        NOT_YET,
+        TESTING,
+        COMPLETED
+    }
+    
+    enum Focus {
+        A,
+        B,
+        OUT,
+        MISC
+    }
+    
+    enum Change {
+        IDLE,
+        ADD,
+        SUBTRACT,
+        FOCUS_A,
+        FOCUS_B,
+        FOCUS_OUT,
+        FOCUS_MISC
+    }
+    
+    alu alu(#SIZE(32))
+    signed_bin_to_dec signed_decimal_renderer
+    .clk(clk) {
+        edge_detector io_button_edge[5](#RISE({1, 1, 1, 1, 1}), #FALL({0, 0, 0, 0, 0}))
+        button_conditioner io_button_cond[5](#CLK_FREQ({CLK_FREQ, CLK_FREQ, CLK_FREQ, CLK_FREQ, CLK_FREQ}))
+        .rst(rst) {
+            dff testing[$width(Testing)](#INIT(Testing.NOT_YET))
+            dff focus[$width(Focus)](#INIT(Focus.A))
+            dff change[$width(Change)](#INIT(Change.IDLE))
+            dff a_dff[32](#INIT(0))
+            dff b_dff[32](#INIT(0))
+            dff alufn_dff[6]
+            dff delta[16]
+            dff current_test[8]
+            dff completed_test
+            dff failed_test
+            alu_fsm_tester alu_fsm_tester
+            multi_seven_seg seg(#DIV(SEVEN_SEG_DIV)) 
+        } 
+    }
     
     always {
-        // implement alu tester logic here
-        alu.a = 0
-        alu.b = 0
-        alu.alufn = 0
-        io_led = 3x{{8h0}}
-        io_segment = 0
-        io_select = 4hF
+        // Feedback loop for dff
+        testing.d = testing.q
+        focus.d = focus.q
+        change.d = change.q
+        a_dff.d = a_dff.q
+        b_dff.d = b_dff.q
+        alufn_dff.d = alufn_dff.q
+        current_test.d = current_test.q
+        completed_test.d = completed_test.q
+        failed_test.d = failed_test.q
         
+        // io_dip assignment
+        alufn_dff.d = io_dip[0][5:0] // 6 for automatic add/sub 7 for test start
+        delta.d[7:0] = io_dip[1]
+        delta.d[15:8] = io_dip[2]
+        
+        // ALU inputs
+        alu.a = a_dff.q
+        alu.b = b_dff.q
+        alu.alufn = alufn_dff.q
+        
+        // Condition the io buttons, then take **rising** edges only
+        io_button_cond.in = io_button
+        io_button_edge.in = io_button_cond.out
+        case(change.q) {
+            Change.IDLE:
+                if (io_button_edge.out[0]) { // Top
+                    change.d = Change.ADD
+                } else if (io_button_edge.out[2]) { // Bot
+                    change.d = Change.SUBTRACT
+                } else if (io_button_edge.out[4]) { // Right
+                    change.d = Change.FOCUS_A
+                } else if (io_button_edge.out[1]) { // Mid
+                    change.d = Change.FOCUS_B
+                } else if (io_button_edge.out[3]) { // Left
+                    // Toggle between displaying alu.out or misc (z, v, n, alufn, test results)
+                    if (focus.q == Focus.OUT) {
+                        change.d = Change.FOCUS_MISC                    
+                    } else {
+                        change.d = Change.FOCUS_OUT
+                    }
+                }
+            Change.ADD:
+                case(focus.q) {
+                    Focus.A:
+                        a_dff.d = $signed(a_dff.q) + $resize($signed(delta.q), 32)
+                    Focus.B:
+                        b_dff.d = $signed(b_dff.q) + $resize($signed(delta.q), 32)
+                }
+                case(io_dip[0][6]) {
+                    0:
+                        change.d = Change.IDLE
+                    1:
+                        change.d = Change.ADD
+                }
+            Change.SUBTRACT:
+                case(focus.q) {
+                    Focus.A:
+                        a_dff.d = $signed(a_dff.q) - $resize($signed(delta.q), 32)
+                    Focus.B:
+                        b_dff.d = $signed(b_dff.q) - $resize($signed(delta.q), 32)
+                }
+                case(io_dip[0][6]) {
+                    0:
+                        change.d = Change.IDLE
+                    1:
+                        change.d = Change.SUBTRACT
+                }
+            Change.FOCUS_A:
+                focus.d = Focus.A
+                change.d = Change.IDLE
+            Change.FOCUS_B:
+                focus.d = Focus.B
+                change.d = Change.IDLE
+            Change.FOCUS_OUT:
+                focus.d = Focus.OUT
+                change.d = Change.IDLE
+            Change.FOCUS_MISC:
+                focus.d = Focus.MISC
+                change.d = Change.IDLE
+        }
+        
+        
+        // Display
+        led = 0
+        io_led = 3x{{8b0}}
+        signed_decimal_renderer.value = 0
+        case(focus.q) {
+            Focus.A:
+                led = a_dff.q[7:0]
+                io_led[0] = a_dff.q[15:8]
+                io_led[1] = a_dff.q[23:16]
+                io_led[2] = a_dff.q[31:24]
+                signed_decimal_renderer.value = $resize(a_dff.q, 10) 
+            Focus.B:
+                led = b_dff.q[7:0]
+                io_led[0] = b_dff.q[15:8]
+                io_led[1] = b_dff.q[23:16]
+                io_led[2] = b_dff.q[31:24]
+                signed_decimal_renderer.value = $resize(b_dff.q, 10)
+            Focus.OUT:
+                led = alu.out[7:0]
+                io_led[0] = alu.out[15:8]
+                io_led[1] = alu.out[23:16]
+                io_led[2] = alu.out[31:24]
+                signed_decimal_renderer.value = $resize(alu.out, 10)
+            Focus.MISC:
+                led[0] = alu.z
+                led[1] = alu.v
+                led[2] = alu.n
+                io_led[0] = alufn_dff.q
+                io_led[1] = current_test.q
+                io_led[2][0] = alu_fsm_tester.completed
+                io_led[2][1] = alu_fsm_tester.failed
+                io_led[2][3:2] = testing.q
+                signed_decimal_renderer.value = $resize(alu.out, 10)
+            default:
+                led[1:0] = 0
+                signed_decimal_renderer.value = 0
+        }
+        seg.values = signed_decimal_renderer.digits
+        io_select = ~seg.sel
+        io_segment = ~seg.seg
+        
+        // Decide if alu_fsm_tester will take over alu for testing
+        alu_fsm_tester.start = 0
+        alu_fsm_tester.alu_out = alu.out
+        alu_fsm_tester.z = alu.z
+        alu_fsm_tester.v = alu.v 
+        alu_fsm_tester.n = alu.n 
+        case(testing.q) {
+            Testing.NOT_YET: // Activate io_dip[0][7] to enter testing phase
+                testing.d = io_dip[0][7] ? Testing.TESTING : testing.q
+            Testing.TESTING: 
+                // Surrenders alu to alu_fsm_tester
+                alu_fsm_tester.start = 1
+                alu.a = alu_fsm_tester.a
+                alu.b = alu_fsm_tester.b
+                alu.alufn = alu_fsm_tester.alufn
+                
+                // Diagnostic purposes
+                a_dff.d = alu_fsm_tester.a
+                b_dff.d = alu_fsm_tester.b
+                alufn_dff.d = alu_fsm_tester.alufn
+                current_test.d = alu_fsm_tester.current_test
+                
+                // Complete test
+                testing.d = alu_fsm_tester.completed ? Testing.COMPLETED : testing.q
+        }
     }
 }

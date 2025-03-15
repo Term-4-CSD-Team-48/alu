@@ -20,6 +20,5 @@ module adder #(
         xb31 = alufn_signal[0]^b[SIZE-1]
         v = (a[SIZE-1] & xb31 & (~rca.s[SIZE-1])) | ((~a[SIZE-1]) & (~xb31) & rca.s[SIZE-1])
         n = rca.s[SIZE-1]
-        
     }
 }

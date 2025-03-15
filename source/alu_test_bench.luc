@@ -1,29 +1,99 @@
 testbench alu_test_bench {
     sig clk
-    sig alu32_a
-    sig alu32_b
-    sig alu32_alufn[6]
+    sig a[32] = 0
+    sig b[32] = 0
+    sig alufn[6] = 0
     
-    alu alu32(#SIZE(32), .a(alu32_a), .b(alu32_b), .alufn(alu32_alufn))
-
+    alu alu(#SIZE(32), .a(a), .b(b), .alufn(alufn))
+    
+    const MAX_SIGNED = $resize($signed($pow(2, 32 - 1) - 1), 32)
+    const MIN_SIGNED = $resize($signed(-$pow(2, 32 - 1)), 32)
+    const MAX_UNSIGNED = $resize($pow(2, 32) - 1, 32)
+    const MIN_UNSIGNED = $resize(0, 32)
+    
     fun tick_clock() {
         clk = 1
-        $silent_tick() // tick without capturing signals
+        $tick()
         clk = 0
         $tick()
     }
-
-    test test_alu32 {
-        // initialize the clock
-        alu32_a = 0
-        alu32_b = 0
-        alu32_alufn = 6b000000
-        clk = 0
-        $tick()
-        
-        $print(alu32.z)
-        $print(alu32.v)
-        $print(alu32.n)
-        $print(alu32.out)
+    
+    fun add(first[32], second[32]) {
+        a = first
+        b = second
+        alufn = 6b000000
+        $tick_clock()
+        $assert($signed(alu.out) == $resize($signed(a) + $signed(b), 32))
+        $assert(alu.z == !$resize($signed(a) + $signed(b), 32))
+        $assert(alu.v == ((alufn[0]^b[31])&a[31]&(~alu.out[31]))|(~(alufn[0]^b[31])&~a[31]&alu.out[31]))
+        $assert(alu.n == alu.out[31])
     }
+    
+    fun minus(first[32], second[32]) {
+        a = first
+        b = second
+        alufn = 6b000001
+        $tick_clock()
+        $assert($signed(alu.out) == $resize($signed(a) - $signed(b), 32))
+        $assert(alu.z == !$resize($signed(a) - $signed(b), 32))
+        $assert(alu.v == ((alufn[0]^b[31])&a[31]&(~alu.out[31]))|(~(alufn[0]^b[31])&~a[31]&alu.out[31]))
+        $assert(alu.n == alu.out[31])
+    }
+    
+    fun test_adder() {
+        $add(0, 0)
+        $add(0, 1)
+        $add(1, 0)
+        $add(1, 1)
+        $add(0, -1)
+        $add(-1, 0)
+        $add(1, -1)
+        $add(-1, 1)
+        $add(MAX_SIGNED, MAX_SIGNED)
+        $add(MAX_SIGNED, MIN_SIGNED)
+        $add(MIN_SIGNED, MIN_SIGNED)
+        $minus(0, 0)
+        $minus(0, 1)
+        $minus(1, 0)
+        $minus(1, 1)
+        $minus(0, -1)
+        $minus(-1, 0)
+        $minus(1, -1)
+        $minus(-1, 1)
+        $minus(MAX_SIGNED, MAX_SIGNED)
+        $minus(MAX_SIGNED, MIN_SIGNED)
+        $minus(MIN_SIGNED, MIN_SIGNED)
+    }
+    
+    fun multiply(first[32], second[32]) {
+        a = first
+        b = second
+        alufn = 6b000010
+        $tick_clock()
+        $assert($signed(alu.out) == $resize($signed(a)*$signed(b), 32))
+    }
+    
+    fun test_multiplier() {
+        $multiply(0, 0)
+        $multiply(0, 1)
+        $multiply(1, 0)
+        $multiply(1, 1)
+        $multiply(0, -1)
+        $multiply(-1, 0)
+        $multiply(1, -1)
+        $multiply(-1, 1)
+        $multiply(MAX_SIGNED, MAX_SIGNED)
+        $multiply(MAX_SIGNED, MIN_SIGNED)
+        $multiply(MIN_SIGNED, MIN_SIGNED)
+        $print(1 / 2)
+    }
+    
+    test alu {        
+        // Adder testing
+        //$test_adder()
+        $print(99/10)
+        // Multiplier testing
+        //$test_multiplier()
+    }
+  
 }

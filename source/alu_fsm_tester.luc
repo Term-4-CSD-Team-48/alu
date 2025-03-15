@@ -1,0 +1,117 @@
+module alu_fsm_tester (
+    input alu_out[32],
+    input z,
+    input v,
+    input n,
+    input clk,  // clock
+    input rst,  // reset
+    input start,
+    output current_test[8],
+    output a[32],
+    output b[32],
+    output alufn[6],
+    output completed,
+    output failed
+) {
+    const SLOW_CLOCK_SIZE = 8
+    const CLK_FREQ = $is_sim() ? 1000 : 100000000 // put 1000 only for sim, 100M on hardware
+    
+    enum Testing {
+        NOT_YET,
+        TESTING,
+        COMPLETED,
+        FAILED
+    }
+    
+    enum Current_Test {
+        A,
+        B,
+        C,
+        D,
+        E,
+        F
+    }
+    
+    .clk(clk) {
+        edge_detector slow_clock_edge(#RISE(1), #FALL(0))  
+        .rst(rst) {
+            dff testing[$width(Testing)](#INIT(Testing.NOT_YET))
+            dff counter[SLOW_CLOCK_SIZE]
+            dff speed_pointer[$clog2(SLOW_CLOCK_SIZE)](#INIT(SLOW_CLOCK_SIZE - 1))
+            dff current_test_dff[$width(Current_Test)](#INIT(Current_Test.A))
+            dff completed_dff
+            dff failed_dff
+            dff a_dff[32]
+            dff b_dff[32]
+            dff alufn_dff[6]
+        }
+    }
+    
+    sig slow_clock
+    
+    always {
+        // Not on any tests now (dff inits with first test which is 0)
+        current_test = current_test_dff.q
+        a = 0
+        b = 0
+        alufn = 0
+        completed = completed_dff.q
+        failed = failed_dff.q
+        
+        // Feedback loops for dff
+        speed_pointer.d = speed_pointer.q
+        testing.d = testing.q
+        current_test_dff.d = current_test_dff.q
+        completed_dff.d = completed_dff.q
+        failed_dff.d = failed_dff.q
+        a_dff.d = a_dff.q
+        b_dff.d = b_dff.q
+        alufn_dff.d = alufn_dff.q
+        
+        // Slow clock
+        counter.d = counter.q + 1
+        
+        // Select which bit to use as slow clock
+        slow_clock = counter.q[speed_pointer.q]
+        
+        // Use slow clock edge to proceed with test
+        slow_clock_edge.in = slow_clock
+        
+        // To start test or not
+        case(testing.q) {
+            Testing.NOT_YET:
+                testing.d = start ? Testing.TESTING : Testing.NOT_YET
+                counter.d = 0
+            Testing.TESTING:
+                if (slow_clock_edge.out) {
+                    case(current_test_dff.q) {
+                        Current_Test.A:
+                            a = 1
+                            a_dff.d = 1
+                            b = 2
+                            b_dff.d = 2
+                            alufn = 6b000000
+                            alufn_dff.d = 6b000000
+                            testing.d = alu_out == 32h0003 ? testing.q : Testing.FAILED
+                            current_test_dff.d = Current_Test.B  
+                        Current_Test.B:
+                            testing.d = Testing.COMPLETED
+                    }
+                }
+            Testing.FAILED:
+                failed_dff.d = 1
+                
+                // Needed because current test increments even if failed.
+                // We want current test to reflect failed test in other words.
+                current_test_dff.d = current_test_dff.q - 1 
+                
+                testing.d = Testing.COMPLETED
+            Testing.COMPLETED:
+                // Continuously output last test values
+                a = a_dff.q
+                b = b_dff.q
+                alufn = alufn_dff.q
+                completed_dff.d = 1
+        }
+    }
+}

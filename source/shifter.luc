@@ -1,6 +1,6 @@
 module shifter #(
     SIZE = 32 : SIZE > 1,
-    SHIFTERS = 2 : SIZE > 1
+    SHIFTERS = 4 : SHIFTERS > 0
 )(
     input a[SIZE],
     input b[5],
@@ -11,10 +11,12 @@ module shifter #(
         //If want to have more shifters need to uncomment the relevant lines
         //x_bit_left_shifter left_shifters[SHIFTERS](#SHIFT({5b10000, 5b01000, 5b00100, 5b00010, 5b00001}))
         //x_bit_right_shifter right_shifters[SHIFTERS](#SHIFT({5b10000, 5b01000, 5b00100, 5b00010, 5b00001}))
+        x_bit_left_shifter left_shifters[SHIFTERS](#SHIFT({4b1000, 4b0100, 4b0010, 4b0001}))
+        x_bit_right_shifter right_shifters[SHIFTERS](#SHIFT({4b1000, 4b0100, 4b0010, 4b0001}))
         //x_bit_left_shifter left_shifters[SHIFTERS](#SHIFT({3b100, 3b010, 3b001}))
         //x_bit_right_shifter right_shifters[SHIFTERS](#SHIFT({3b100, 3b010, 3b001}))
-        x_bit_left_shifter left_shifters[SHIFTERS](#SHIFT({2b10, 2b01}))
-        x_bit_right_shifter right_shifters[SHIFTERS](#SHIFT({2b10, 2b01}))
+        //x_bit_left_shifter left_shifters[SHIFTERS](#SHIFT({2b10, 2b01}))
+        //x_bit_right_shifter right_shifters[SHIFTERS](#SHIFT({2b10, 2b01}))
     }
     always {
         repeat(i, SHIFTERS, 0, 1) {
