@@ -12,8 +12,6 @@ module alu_manual_tester
     // Declare it here instead of being passed as a variable
     // For some reason it'll throw up an error if passed from alchitry_top
     const CLK_FREQ = $is_sim() ? 1000 : 10000000
-     
-    //const SEVEN_SEG_DIV = $is_sim() ? 1 : 14
     
     enum Testing {
         NOT_YET,
@@ -39,7 +37,7 @@ module alu_manual_tester
     }
     
     alu alu(#SIZE(32))
-    bin_to_dec decimal_renderer(#DIGITS(4), #LEADING_ZEROS(1))
+    signed_bin_to_dec decimal_renderer(#DIGITS(4), #LEADING_ZEROS(1))
     .clk(clk) {
         edge_detector io_button_edge[5](#RISE({1, 1, 1, 1, 1}), #FALL({0, 0, 0, 0, 0}))
         button_conditioner io_button_cond[5](#CLK_FREQ({CLK_FREQ, CLK_FREQ, CLK_FREQ, CLK_FREQ, CLK_FREQ}))
@@ -86,6 +84,9 @@ module alu_manual_tester
         io_button_edge.in = io_button_cond.out
         case(change.q) {
             Change.IDLE:
+                change.d = change.q
+                // Our FPGA's io_buttons are cooked and responding even when they aren't being pressed
+                /**
                 if (io_button_edge.out[0]) { // Top
                     change.d = Change.ADD
                 } else if (io_button_edge.out[2]) { // Bot
@@ -102,6 +103,7 @@ module alu_manual_tester
                         change.d = Change.FOCUS_OUT
                     }
                 }
+                */
             Change.ADD:
                 case(focus.q) {
                     Focus.A:
