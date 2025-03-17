@@ -8,8 +8,6 @@ testbench alu_test_bench {
     
     const MAX_SIGNED = $resize($signed($pow(2, 32 - 1) - 1), 32)
     const MIN_SIGNED = $resize($signed(-$pow(2, 32 - 1)), 32)
-    const MAX_UNSIGNED = $resize($pow(2, 32) - 1, 32)
-    const MIN_UNSIGNED = $resize(0, 32)
     
     fun tick_clock() {
         clk = 1

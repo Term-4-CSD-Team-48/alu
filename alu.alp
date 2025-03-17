@@ -32,12 +32,6 @@
             {
                 "file": {
                     "type": "DiskFile",
-                    "path": "source/bit_reverse.luc"
-                }
-            },
-            {
-                "file": {
-                    "type": "DiskFile",
                     "path": "source/boolean.luc"
                 }
             },
@@ -158,12 +152,6 @@
             {
                 "file": {
                     "type": "DiskFile",
-                    "path": "source/signed_bin_to_dec.luc"
-                }
-            },
-            {
-                "file": {
-                    "type": "DiskFile",
                     "path": "source/alu_fsm_tester.luc"
                 }
             }
@@ -177,8 +165,8 @@
             },
             {
                 "file": {
-                    "type": "Component",
-                    "path": "Constraints/alchitry.acf"
+                    "type": "DiskFile",
+                    "path": "constraint/alchitry.acf"
                 }
             }
         ],

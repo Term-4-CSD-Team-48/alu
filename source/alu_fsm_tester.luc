@@ -13,8 +13,7 @@ module alu_fsm_tester (
     output completed,
     output failed
 ) {
-    const SLOW_CLOCK_SIZE = 8
-    const CLK_FREQ = $is_sim() ? 1000 : 100000000 // put 1000 only for sim, 100M on hardware
+    const SLOW_CLOCK_SIZE = 25
     
     enum Testing {
         NOT_YET,
@@ -23,22 +22,13 @@ module alu_fsm_tester (
         FAILED
     }
     
-    enum Current_Test {
-        A,
-        B,
-        C,
-        D,
-        E,
-        F
-    }
-    
     .clk(clk) {
         edge_detector slow_clock_edge(#RISE(1), #FALL(0))  
         .rst(rst) {
             dff testing[$width(Testing)](#INIT(Testing.NOT_YET))
             dff counter[SLOW_CLOCK_SIZE]
-            dff speed_pointer[$clog2(SLOW_CLOCK_SIZE)](#INIT(0))
-            dff current_test_dff[$width(Current_Test)](#INIT(Current_Test.A))
+            dff speed_pointer[$clog2(SLOW_CLOCK_SIZE)](#INIT($is_sim() ? 1 : 24))
+            dff current_test_dff[8](#INIT(b0)) // Start from test 0
             dff completed_dff
             dff failed_dff
             dff a_dff[32]
@@ -89,19 +79,647 @@ module alu_fsm_tester (
                 testing.d = start ? Testing.TESTING : Testing.NOT_YET
                 counter.d = 0
             Testing.TESTING:
+                // These pass in simulation but not irl
+                // 10, 100, 1000, 1010 
                 if (slow_clock_edge.out) {
-                    case(current_test_dff.q) {
-                        Current_Test.A:
+                    case(current_test_dff.q) { // dff has width 8 so we can only write 256 tests
+                        // ADDER UNIT
+                        b0: // 0 + 0
+                            a_sig = 0
+                            b_sig = 0
+                            alufn_sig = 0
+                            // Assert that all conditions here must be true or fail the test
+                            // if i don't put them in brackets it fails it's a bug
+                            if (~((alu_out == 0) & 
+                                    (z) & 
+                                    (~v) & 
+                                    (~n))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b1  
+                        b1: // 1 + 0
                             a_sig = 1
-                            b_sig = 2
+                            b_sig = 0
+                            alufn_sig = 0
+                            if (~((alu_out == 1) & 
+                                    (~z) & 
+                                    (~v) & 
+                                    (~n))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b10
+                        b10: // 1 + (-1)
+                            a_sig = 32h00000001
+                            b_sig = 32hFFFFFFFF
                             alufn_sig = 6b000000
-                            testing.d = alu_out == 32h0003 ? testing.q : Testing.FAILED
-                            current_test_dff.d = Current_Test.B  
-                        Current_Test.B:
+                            if (~((alu_out == 32h00000000) & 
+                                    (z) & 
+                                    (~v) & 
+                                    (~n))) { 
+                                //testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b11
+                        b11: // 0 + 1
+                            a_sig = 0
+                            b_sig = 1
+                            alufn_sig = 0
+                            if (~((alu_out == 1) & 
+                                    (~z) & 
+                                    (~v) & 
+                                    (~n))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b100
+                        b100: // (-1) + 1
+                            a_sig = 32hFFFFFFFF
+                            b_sig = 32h00000001
+                            alufn_sig = 6b000000
+                            if (~((alu_out == 32h00000000) & 
+                                    (z) & 
+                                    (~v) & 
+                                    (~n))) { 
+                                //testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b101
+                        b101: // (-1) + (-1)
+                            a_sig = 32x{1}
+                            b_sig = 32x{1}
+                            alufn_sig = 0
+                            if (~((alu_out == 32hFFFFFFFE) & 
+                                    (~z) & 
+                                    (~v) & 
+                                    (n))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b110
+                        b110: // 1 + 1
                             a_sig = 1
-                            b_sig = 2
-                            alufn_sig = 6b000001
-                            testing.d = Testing.COMPLETED
+                            b_sig = 1
+                            alufn_sig = 0
+                            if (~(alu_out == 2 & 
+                                    ~z & 
+                                    ~v & 
+                                    ~n)) {
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b111
+                        b111: // 2147483647 + 2147483647
+                            a_sig = 32h7FFFFFFF
+                            b_sig = 32h7FFFFFFF
+                            alufn_sig = 0
+                            if (~((alu_out == 32hFFFFFFFE) &
+                                    (~z) & 
+                                    (v) & 
+                                    (n))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b1000
+                        b1000: // 1 - 0
+                            a_sig = 1
+                            b_sig = 0
+                            alufn_sig = 1
+                            if (~((alu_out == 1) &
+                                    (~z) & 
+                                    (~v) & 
+                                    (~n))) { 
+                                //testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b1001
+                        b1001: // 0 - 1
+                            a_sig = 0
+                            b_sig = 1
+                            alufn_sig = 1
+                            if (~((alu_out == 32hFFFFFFFF) &
+                                    (~z) & 
+                                    (~v) & 
+                                    (n))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b1010
+                        b1010: // 0 - 0
+                            a_sig = 0
+                            b_sig = 0
+                            alufn_sig = 1
+                            if (~((alu_out == 0) &
+                                    (z) & 
+                                    (~v) & 
+                                    (~n))) { 
+                                //testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b1011
+                        b1011: // 0 - 2147483647
+                            a_sig = 0
+                            b_sig = 32h7FFFFFFF
+                            alufn_sig = 1
+                            if (~((alu_out == 32h80000001) &
+                                    (~z) & 
+                                    (~v) & 
+                                    (n))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b1100
+                        b1100: // 2147483647 - (-1)
+                            a_sig = 32h7FFFFFFF
+                            b_sig = 32hFFFFFFFF
+                            alufn_sig = 1
+                            if (~((alu_out == 32h80000000) &
+                                    (~z) & 
+                                    (v) & 
+                                    (n))) { 
+                                //testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b1101
+                        b1101: // -2147483648 - 1
+                            a_sig = 32h80000000
+                            b_sig = 1
+                            alufn_sig = 1
+                            if (~((alu_out == 32h7FFFFFFF) &
+                                    (~z) & 
+                                    (v) & 
+                                    (~n))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b1110
+                        b1110: // 1 - 1
+                            a_sig = 1
+                            b_sig = 1
+                            alufn_sig = 1
+                            if (~((alu_out == 0) &
+                                    (z) & 
+                                    (~v) & 
+                                    (~n))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b1111
+                        b1111: // 2147483647 - 1
+                            a_sig = 32h7FFFFFFF
+                            b_sig = 1
+                            alufn_sig = 1
+                            if (~((alu_out == 32h7FFFFFFE) &
+                                    (~z) & 
+                                    (~v) & 
+                                    (~n))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b10000
+                        
+                        // COMPARE UNIT
+                        b10000: // 0 == 0
+                            a_sig = 0
+                            b_sig = 0
+                            alufn_sig = 6b110011
+                            if (~((alu_out[0] == 1))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b10001
+                        b10001: // 0 == 1
+                            a_sig = 0
+                            b_sig = 1
+                            alufn_sig = 6b110011
+                            if (~((alu_out[0] == 0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b10010
+                        b10010: // 1 == 0
+                            a_sig = 1
+                            b_sig = 0
+                            alufn_sig = 6b110011
+                            if (~((alu_out[0] == 0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b10011
+                        b10011: // 1 == 1 
+                            a_sig = 1
+                            b_sig = 1
+                            alufn_sig = 6b110011
+                            if (~((alu_out[0] == 1))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b10100
+                        b10100: // 2147483647 == -2147483648
+                            a_sig = 32h7FFFFFFF
+                            b_sig = 32h80000000
+                            alufn_sig = 6b110011
+                            if (~((alu_out[0] == 0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b10101
+                        b10101: // 2147483647 == 2147483647
+                            a_sig = 32h7FFFFFFF
+                            b_sig = 32h7FFFFFFF
+                            alufn_sig = 6b110011
+                            if (~((alu_out[0] == 1))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b10110
+                        b10110: // 0 < 0
+                            a_sig = 0
+                            b_sig = 0
+                            alufn_sig = 6b110101
+                            if (~((alu_out[0] == 0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b10111
+                        b10111: // 0 < 1
+                            a_sig = 0
+                            b_sig = 1
+                            alufn_sig = 6b110101
+                            if (~((alu_out[0] == 1))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b11000
+                        b11000: // 1 < 0
+                            a_sig = 1
+                            b_sig = 0
+                            alufn_sig = 6b110101
+                            if (~((alu_out[0] == 0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b11001
+                        b11001: // 2147483647 < -2147483648
+                            a_sig = 32h7FFFFFFF
+                            b_sig = 32h80000000
+                            alufn_sig = 6b110101
+                            if (~((alu_out[0] == 0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b11010
+                        b11010: // -2147483648 < 2147483647
+                            a_sig = 32h80000000
+                            b_sig = 32h7FFFFFFF
+                            alufn_sig = 6b110101
+                            if (~((alu_out[0] == 1))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b11011
+                        b11011: // -2147483648 <= 2147483647
+                            a_sig = 32h80000000
+                            b_sig = 32h7FFFFFFF
+                            alufn_sig = 6b110111
+                            if (~((alu_out[0] == 1))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b11100
+                        b11100: // 2147483647 <= -2147483648
+                            a_sig = 32h7FFFFFFF
+                            b_sig = 32h80000000
+                            alufn_sig = 6b110111
+                            if (~((alu_out[0] == 0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b11101
+                        b11101: // 0 <= 0
+                            a_sig = 0
+                            b_sig = 0
+                            alufn_sig = 6b110111
+                            if (~((alu_out[0] == 1))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b11110
+                        b11110: // 0 <= 1
+                            a_sig = 0
+                            b_sig = 1
+                            alufn_sig = 6b110111
+                            if (~((alu_out[0] == 1))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b11111
+                        b11111: // 1 <= 0
+                            a_sig = 1
+                            b_sig = 0
+                            alufn_sig = 6b110111
+                            if (~((alu_out[0] == 0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b100000
+                        
+                        // BOOLEAN UNIT
+                        b100000: // 0 & 0 
+                            a_sig = 0
+                            b_sig = 0
+                            alufn_sig = 6b011000
+                            if (~((alu_out == 0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b100001
+                        b100001: // 0x12345678 & 0
+                            a_sig = 32h12345678
+                            b_sig = 0
+                            alufn_sig = 6b011000
+                            if (~((alu_out == 0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b100010
+                        b100010: // 0x12345678 & 0xFFFFFFFF
+                            a_sig = 32h12345678
+                            b_sig = 32hFFFFFFFF
+                            alufn_sig = 6b011000
+                            if (~((alu_out == 32h12345678))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b100011
+                        b100011: // 0x12345678 & 0x12345678
+                            a_sig = 32h12345678
+                            b_sig = 32h12345678
+                            alufn_sig = 6b011000
+                            if (~((alu_out == 32h12345678))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b100100
+                        b100100: // 0x12345678 & ~0x12345678
+                            a_sig = 32h12345678
+                            b_sig = ~32h12345678
+                            alufn_sig = 6b011000
+                            if (~((alu_out == 0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b100101
+                        b100101: // 0xFFFFFFFF & 0xFFFFFFFF
+                            a_sig = 32hFFFFFFFF
+                            b_sig = 32hFFFFFFFF
+                            alufn_sig = 6b011000
+                            if (~((alu_out == 32hFFFFFFFF))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b100110
+                        b100110: // 0x12345678 | 0
+                            a_sig = 32h12345678
+                            b_sig = 0
+                            alufn_sig = 6b011110
+                            if (~((alu_out == 32h12345678))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b100111
+                        b100111: // 0x12345678 | 0xFFFFFFFF
+                            a_sig = 32h12345678
+                            b_sig = 32hFFFFFFFF
+                            alufn_sig = 6b011110
+                            if (~((alu_out == 32hFFFFFFFF))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b101000
+                        b101000: // 0x12345678 | 0x12345678
+                            a_sig = 32h12345678
+                            b_sig = 32h12345678
+                            alufn_sig = 6b011110
+                            if (~((alu_out == 32h12345678))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b101001
+                        b101001: // 0 | 0
+                            a_sig = 0
+                            b_sig = 0
+                            alufn_sig = 6b011110
+                            if (~((alu_out == 0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b101010
+                        b101010: // 0xFFFFFFFF | 0xFFFFFFFF
+                            a_sig = 32hFFFFFFFF
+                            b_sig = 32hFFFFFFFF
+                            alufn_sig = 6b011110
+                            if (~((alu_out == 32hFFFFFFFF))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b101011
+                        b101011: // 0x12345678 ^ 0
+                            a_sig = 32h12345678
+                            b_sig = 0
+                            alufn_sig = 6b010110
+                            if (~((alu_out == 32h12345678))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b101100
+                        b101100: // 0x12345678 ^ 0x12345678
+                            a_sig = 32h12345678
+                            b_sig = 32h12345678
+                            alufn_sig = 6b010110
+                            if (~((alu_out == 0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b101101
+                        b101101: // 0x12345678 ^ ~0x12345678
+                            a_sig = 32h12345678
+                            b_sig = ~32h12345678
+                            alufn_sig = 6b010110
+                            if (~((alu_out == 32hFFFFFFFF))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b101110
+                        b101110: // 0xFFFFFFFF ^ 0xFFFFFFFF
+                            a_sig = 32hFFFFFFFF
+                            b_sig = 32hFFFFFFFF
+                            alufn_sig = 6b010110
+                            if (~((alu_out == 0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b101111
+                        b101111: // 0 ^ 0
+                            a_sig = 0
+                            b_sig = 0
+                            alufn_sig = 6b010110
+                            if (~((alu_out == 0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b110000
+                        b110000: // "A" LDR
+                            a_sig = 32h12345678
+                            b_sig = 0
+                            alufn_sig = 6b011010
+                            if (~((alu_out == 32h12345678))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b110001
+                        b110001: // "A" LDR
+                            a_sig = 32h12345678
+                            b_sig = 32hFFFFFFFF
+                            alufn_sig = 6b011010
+                            if (~((alu_out == 32h12345678))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b110010
+                        
+                        // Shifter
+                        b110010: // 0x12345678 << 0
+                            a_sig = 32h12345678
+                            b_sig = 0
+                            alufn_sig = 6b100000
+                            if (~((alu_out == 32h12345678))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b110011
+                        b110011: // 0x12345671 << 0xFFFFFFFF
+                            a_sig = 32h12345671
+                            b_sig = 32hFFFFFFFF
+                            alufn_sig = 6b100000
+                            if (~((alu_out == 32h80000000))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b110100
+                        b110100: // 0x12345678 << 0xFFFFFF01
+                            a_sig = 32h12345678
+                            b_sig = 32hFFFFFF01
+                            alufn_sig = 6b100000
+                            if (~((alu_out == 32h2468ACF0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b110101
+                        b110101: // 0 << 0xFFFFFF01
+                            a_sig = 0
+                            b_sig = 32hFFFFFF01
+                            alufn_sig = 6b100000
+                            if (~((alu_out == 0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b110110
+                        b110110: // 0xA0000000 << 0xFFFFFF01
+                            a_sig = 32hA0000000
+                            b_sig = 32hFFFFFF01
+                            alufn_sig = 6b100000
+                            if (~((alu_out == 32h40000000))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b110111
+                        b110111: // 0x12345678 >> 0
+                            a_sig = 32h12345678
+                            b_sig = 0
+                            alufn_sig = 6b100001
+                            if (~((alu_out == 32h12345678))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b111000
+                        b111000: // 0x12345678 >> 0xFFFFFFFF
+                            a_sig = 32h12345678
+                            b_sig = 32hFFFFFFFF
+                            alufn_sig = 6b100001
+                            if (~((alu_out == 0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b111001
+                        b111001: // 0xFFFFFFFF >> 0xFFFFFFFF
+                            a_sig = 32hFFFFFFFF
+                            b_sig = 32hFFFFFFFF
+                            alufn_sig = 6b100001
+                            if (~((alu_out == 1))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b111010
+                        b111010: // 0 >> 0xFFFFFFFF
+                            a_sig = 0
+                            b_sig = 32hFFFFFFFF
+                            alufn_sig = 6b100001
+                            if (~((alu_out == 0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b111011
+                        b111011: // 0 -> 0xFFFFFFFF
+                            a_sig = 0
+                            b_sig = 32hFFFFFFFF
+                            alufn_sig = 6b100011
+                            if (~((alu_out == 0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b111100
+                        b111100: // 0xFFFFFFFF -> 0xFFFFFFFF
+                            a_sig = 32hFFFFFFFF
+                            b_sig = 32hFFFFFFFF
+                            alufn_sig = 6b100011
+                            if (~((alu_out == 32hFFFFFFFF))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b111101
+                        b111101: // 0x4FFFFFFF -> 0xFFFFFF01
+                            a_sig = 32h4FFFFFFF
+                            b_sig = 32hFFFFFF01
+                            alufn_sig = 6b100011
+                            if (~((alu_out == 32h27FFFFFF))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b111110
+                        b111110: // 0x80000000 -> 0xFFFFFFFF
+                            a_sig = 32h80000000
+                            b_sig = 32hFFFFFFFF
+                            alufn_sig = 6b100011
+                            if (~((alu_out == 32hFFFFFFFF))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b111111
+                        b111111: // 0x80000000 -> 0xFFFFFFFF
+                            a_sig = 32h80000000
+                            b_sig = 32hFFFFFFFF
+                            alufn_sig = 6b100011
+                            if (~((alu_out == 32hFFFFFFFF))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b1000000
+                        
+                        // Multiplier
+                        b1000000: // 0*0
+                            a_sig = 0
+                            b_sig = 0
+                            alufn_sig = 6b000010
+                            if (~((alu_out == 0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b1000001
+                        b1000001: // 0x12345678*1
+                            a_sig = 32h12345678
+                            b_sig = 1
+                            alufn_sig = 6b000010
+                            if (~((alu_out == 32h12345678))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b1000010
+                        b1000010: // 0x12345678*(-1)
+                            a_sig = 32h12345678
+                            b_sig = 32hFFFFFFFF
+                            alufn_sig = 6b000010
+                            if (~((alu_out == 32b11101101110010111010100110001000))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b1000011
+                        b1000011: // (-1)*(-1)
+                            a_sig = 32hFFFFFFFF
+                            b_sig = 32hFFFFFFFF
+                            alufn_sig = 6b000010
+                            if (~((alu_out == 1))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b1000100
+                        b1000100: // 0x12345678*0
+                            a_sig = 32h12345678
+                            b_sig = 0
+                            alufn_sig = 6b000010
+                            if (~((alu_out == 0))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b1000101
+                        b1000101: // 3*3
+                            a_sig = 32h00000003
+                            b_sig = 32h00000003
+                            alufn_sig = 6b000010
+                            if (~((alu_out == 32h00000009))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b1000110
+                        b1000110: // 2147483647*(-1)
+                            a_sig = 32h7FFFFFFF
+                            b_sig = 32hFFFFFFFF
+                            alufn_sig = 6b000010
+                            if (~((alu_out == 32h80000001))) { 
+                                testing.d = Testing.FAILED
+                            }
+                            current_test_dff.d = b1000111
+                        b1000111: // (-2147483648)*(-1)
+                            a_sig = 32h80000000
+                            b_sig = 32hFFFFFFFF
+                            alufn_sig = 6b000010
+                            if (~((alu_out == 32h80000000))) { 
+                                testing.d = Testing.FAILED
+                                current_test_dff.d = b1001000
+                            } else {
+                                testing.d = Testing.COMPLETED
+                            }
                     }
                     a_sig[0] = start ? a_sig[0] : ~a_sig[0] // Simulate an error
                     a = a_sig

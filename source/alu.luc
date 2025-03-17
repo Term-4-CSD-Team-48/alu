@@ -32,7 +32,7 @@ module alu #(
         boolean.alufn = alufn
         
         shifter.a = a
-        shifter.b = b
+        shifter.b = b[4:0]
         shifter.alufn = alufn
         
         multiplier.a = a
@@ -50,15 +50,15 @@ module alu #(
             mux_4.in[i][2] = shifter.shift[i]
             mux_4.in[i][3] = 0
         }
-        mux_4.in[SIZE-1][3] = compare.cmp
+        mux_4.in[0][3] = compare.cmp
         mux_4.s0 = SIZEx{alufn[4]}
         mux_4.s1 = SIZEx{alufn[5]}
         
-        out = mux_4.out
+        out =  mux_4.out
         
-        if (alufn == 6b111111) {
-            out = a / b
-        }
+        //if (alufn == 6b111111) {
+        //    out = a / b
+        //}
         
         z = adder.z
         v = adder.v

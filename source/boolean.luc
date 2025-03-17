@@ -11,15 +11,8 @@ module boolean #(
     always {
         mux_4.s0 = a
         mux_4.s1 = b
-        //repeat(i, SIZE, 0, 1) {
-        //    mux_4.in[i][0] = alufn[0]
-        //    mux_4.in[i][1] = alufn[1]
-        //    mux_4.in[i][2] = alufn[2]
-        //    mux_4.in[i][3] = alufn[3]
-        //}
         mux_4.in = SIZEx{{alufn[3:0]}}
         bool = mux_4.out
-        
     }
     
 }

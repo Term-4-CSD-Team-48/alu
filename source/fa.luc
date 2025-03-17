@@ -8,10 +8,8 @@ module fa (
 ) {
     
     always {
-        // implement 1-bit full adder logic here
         s = a^b^cin
-        cout = (a&b) | (b&cin) | (a&cin)
-        
+        cout = (a&b) | (b&cin) | (a&cin)   
     }
-    
+  
 }
