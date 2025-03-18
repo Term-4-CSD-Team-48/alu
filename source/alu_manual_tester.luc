@@ -9,6 +9,7 @@ module alu_manual_tester
     output io_select[4],
     output led[8]
 ) {
+    const SLOW_CLOCK_SIZE = 11
     // Declare it here instead of being passed as a variable
     // For some reason it'll throw up an error if passed from alchitry_top
     const CLK_FREQ = $is_sim() ? 1000 : 1000
@@ -29,7 +30,9 @@ module alu_manual_tester
     enum Change {
         IDLE,
         ADD,
+        WAITING_TO_ADD,
         SUBTRACT,
+        WAITING_TO_SUBTRACT,
         FOCUS_A,
         FOCUS_B,
         FOCUS_OUT,
@@ -40,6 +43,7 @@ module alu_manual_tester
     signed_bin_to_dec decimal_renderer(#DIGITS(4), #LEADING_ZEROS(1))
     .clk(clk) {
         edge_detector io_button_edge[5](#RISE({1, 1, 1, 1, 1}), #FALL({0, 0, 0, 0, 0}))
+        edge_detector slow_clock_edge(#RISE(1), #FALL(0))
         button_conditioner io_button_cond[5](#CLK_FREQ({CLK_FREQ, CLK_FREQ, CLK_FREQ, CLK_FREQ, CLK_FREQ}))
         .rst(rst) {
             dff testing[$width(Testing)](#INIT(Testing.NOT_YET))
@@ -52,10 +56,14 @@ module alu_manual_tester
             dff current_test[8]
             dff completed_test
             dff failed_test
+            dff counter[SLOW_CLOCK_SIZE]
+            dff speed_pointer[$clog2(SLOW_CLOCK_SIZE)](#INIT($is_sim() ? 0 : SLOW_CLOCK_SIZE - 1))
             alu_fsm_tester alu_fsm_tester
             multi_seven_seg seg(#DIV($is_sim() ? 1 : 19)) 
         } 
     }
+    
+    sig slow_clock
     
     always {
         // Feedback loop for dff
@@ -68,6 +76,16 @@ module alu_manual_tester
         current_test.d = current_test.q
         completed_test.d = completed_test.q
         failed_test.d = failed_test.q
+        speed_pointer.d = speed_pointer.q
+        
+        // Slow clock
+        counter.d = counter.q + 1
+        
+        // Select which bit to use as slow clock
+        slow_clock = counter.q[speed_pointer.q]
+        
+        // Use slow clock edge to proceed with test
+        slow_clock_edge.in = slow_clock
         
         // io_dip assignment
         alufn_dff.d = io_dip[0][5:0] // 6 for automatic add/sub, 7 for test start
@@ -111,8 +129,10 @@ module alu_manual_tester
                     0:
                         change.d = Change.IDLE
                     1:
-                        change.d = Change.ADD
+                        change.d = Change.WAITING_TO_ADD
                 }
+            Change.WAITING_TO_ADD:
+                change.d = slow_clock_edge.out ? Change.ADD : Change.WAITING_TO_ADD
             Change.SUBTRACT:
                 case(focus.q) {
                     Focus.A:
@@ -124,8 +144,10 @@ module alu_manual_tester
                     0:
                         change.d = Change.IDLE
                     1:
-                        change.d = Change.SUBTRACT
+                        change.d = Change.WAITING_TO_SUBTRACT
                 }
+            Change.WAITING_TO_SUBTRACT:
+                change.d = slow_clock_edge.out ? Change.SUBTRACT : Change.WAITING_TO_SUBTRACT
             Change.FOCUS_A:
                 focus.d = Focus.A
                 change.d = Change.IDLE

@@ -13,7 +13,7 @@ module alu_fsm_tester (
     output completed,
     output failed
 ) {
-    const SLOW_CLOCK_SIZE = 25
+    const SLOW_CLOCK_SIZE = 26
     
     enum Testing {
         NOT_YET,
@@ -27,7 +27,7 @@ module alu_fsm_tester (
         .rst(rst) {
             dff testing[$width(Testing)](#INIT(Testing.NOT_YET))
             dff counter[SLOW_CLOCK_SIZE]
-            dff speed_pointer[$clog2(SLOW_CLOCK_SIZE)](#INIT($is_sim() ? 0 : 24))
+            dff speed_pointer[$clog2(SLOW_CLOCK_SIZE)](#INIT($is_sim() ? 0 : SLOW_CLOCK_SIZE - 1))
             dff current_test_dff[8](#INIT(0)) // Start from test 0
             dff completed_dff
             dff failed_dff
@@ -54,8 +54,8 @@ module alu_fsm_tester (
         failed = failed_dff.q
         
         // Feedback loops for dff
-        speed_pointer.d = speed_pointer.q
         testing.d = testing.q
+        speed_pointer.d = speed_pointer.q
         current_test_dff.d = current_test_dff.q
         completed_dff.d = completed_dff.q
         failed_dff.d = failed_dff.q
