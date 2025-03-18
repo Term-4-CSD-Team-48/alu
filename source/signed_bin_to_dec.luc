@@ -16,7 +16,7 @@ module signed_bin_to_dec #(
         remainders = 3x{{absolute_value}}
         digits_sig[2] = remainders[2]*41/$pow(2, 12) // divide by 10^2
         remainders[1] = remainders[2] - digits_sig[2]*100
-        digits_sig[1] = remainders[2]*41/$pow(2, 12) // divide by 10^2
+        digits_sig[1] = remainders[1]*205/$pow(2, 11) // divide by 10^1
         remainders[0] = remainders[1] - digits_sig[1]*10
         digits_sig[0] = remainders[0] // divide by 10^0
         digits = digits_sig
