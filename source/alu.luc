@@ -1,8 +1,6 @@
 module alu #(
     SIZE = 32 : SIZE > 1
 )(
-    input clk,  // clock
-    input rst,  // reset
     input a[SIZE],
     input b[SIZE],
     input alufn[6],
@@ -19,16 +17,8 @@ module alu #(
     mux_2 mux_2[SIZE]
     mux_4 mux_4[SIZE]
     
-    .clk(clk) {
-        .rst(rst) {
-            dff signed_counter[10](#INIT(10b1000000000))
-        }
-    }
         
     always {
-        // Used to generate a "random" number between -512 and 511 (both inc.)
-        signed_counter.d = signed_counter.q + 1
-        
         adder.a = a
         adder.b = b
         adder.alufn_signal = alufn
@@ -67,11 +57,12 @@ module alu #(
         
         out =  mux_4.out
         
+        // Additional functionalities
+        // Note that 6b111110 is implemented outside of the alu as it is not 
+        // optimized to have the random number generator inside of the alu
+        // which means the whole thing will not work if rng is inside
         if (alufn == 6b111111) {
             out = a / b
-        } else if (alufn == 6b111110) {
-            signed_counter.d = signed_counter.q
-            out = signed_counter.q
         }
         
         z = adder.z
