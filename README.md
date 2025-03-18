@@ -55,3 +55,13 @@ Set io_dip[0][7] to one and the FSM tester will initiate tests. Focus on misc to
 test information. The last test's a, b, out, and all misc information will be saved. Simply
 press reset to purge all saved values when test completes. The saved values can be read by
 selecting the focus with relevant io_buttons.
+
+# extra ALUFN functionalities
+
+## 111111
+
+out = a / b
+
+## 111110
+
+out = a random number from -512 inclusive to 511 inclusive
