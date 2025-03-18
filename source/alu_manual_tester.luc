@@ -11,7 +11,7 @@ module alu_manual_tester
 ) {
     // Declare it here instead of being passed as a variable
     // For some reason it'll throw up an error if passed from alchitry_top
-    const CLK_FREQ = $is_sim() ? 1000 : 10000
+    const CLK_FREQ = $is_sim() ? 1000 : 1000
     
     enum Testing {
         NOT_YET,
