@@ -25,8 +25,6 @@ module multiplier #(
             rcas.b[i] = rcas.s[i-1]
         }
         rcas.b[0] = 0
-        
-        // implement multiplier unit logic here
         mul = rcas.s[SIZE-1]
     }
 }

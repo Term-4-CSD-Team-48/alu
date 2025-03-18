@@ -25,6 +25,14 @@ testbench alu_test_bench {
         $assert(alu.z == !$resize($signed(a) + $signed(b), 32))
         $assert(alu.v == ((alufn[0]^b[31])&a[31]&(~alu.out[31]))|(~(alufn[0]^b[31])&~a[31]&alu.out[31]))
         $assert(alu.n == alu.out[31])
+        // ONLY UNCOMMENT THE PRINTS IF YOU KNOW WHAT YOU'RE DOING
+        $print(a)
+        $print(b)
+        $print(alufn)
+        $print(alu.out)
+        $print(alu.z)
+        $print(alu.v)
+        $print(alu.n)
     }
     
     fun minus(first[32], second[32]) {
@@ -89,9 +97,9 @@ testbench alu_test_bench {
     test alu {        
         // Adder testing
         //$test_adder()
-        $print(99/10)
         // Multiplier testing
         //$test_multiplier()
+        $add(1, 32hFFFFFFFF)
     }
   
 }

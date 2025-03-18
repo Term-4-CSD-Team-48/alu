@@ -27,7 +27,7 @@ module alu_fsm_tester (
         .rst(rst) {
             dff testing[$width(Testing)](#INIT(Testing.NOT_YET))
             dff counter[SLOW_CLOCK_SIZE]
-            dff speed_pointer[$clog2(SLOW_CLOCK_SIZE)](#INIT($is_sim() ? 1 : 24))
+            dff speed_pointer[$clog2(SLOW_CLOCK_SIZE)](#INIT($is_sim() ? 0 : 24))
             dff current_test_dff[8](#INIT(b0)) // Start from test 0
             dff completed_dff
             dff failed_dff
@@ -110,12 +110,15 @@ module alu_fsm_tester (
                             a_sig = 32h00000001
                             b_sig = 32hFFFFFFFF
                             alufn_sig = 6b000000
-                            if (~((alu_out == 32h00000000) & 
-                                    (z) & 
-                                    (~v) & 
-                                    (~n))) { 
+                            if (alu_out != 0) {
                                 testing.d = Testing.FAILED
-                            }
+                            } else if (z == 0) {
+                                testing.d = Testing.FAILED
+                            } else if (v == 1) {
+                                testing.d = Testing.FAILED
+                            } else if (n == 1) {
+                                testing.d = Testing.FAILED
+                            } 
                             current_test_dff.d = b11
                         b11: // 0 + 1
                             a_sig = 0
@@ -719,14 +722,7 @@ module alu_fsm_tester (
                                 testing.d = Testing.COMPLETED
                             }
                     }
-                    testing.d = Testing.TESTING // IRL fails because of bad FPGA, but pass in sim
-                    //a_sig[0] = start ? a_sig[0] : ~a_sig[0] // Simulate an error
-                    // Remove this if else block when submitting as well as uncomment above line
-                    if (~start) {
-                        a_sig[0] = ~a_sig[0]
-                        current_test_dff.d = current_test_dff.q + 1
-                        testing.d = Testing.FAILED
-                    }
+                    a_sig[0] = start ? a_sig[0] : ~a_sig[0] // Simulate an error
                     a = a_sig
                     a_dff.d = a_sig
                     b = b_sig

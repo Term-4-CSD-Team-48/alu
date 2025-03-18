@@ -56,9 +56,9 @@ module alu #(
         
         out =  mux_4.out
         
-        //if (alufn == 6b111111) {
-        //    out = a / b
-        //}
+        if (alufn == 6b111111) {
+            out = a / b
+        }
         
         z = adder.z
         v = adder.v

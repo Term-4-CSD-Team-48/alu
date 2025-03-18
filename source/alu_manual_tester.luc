@@ -11,7 +11,7 @@ module alu_manual_tester
 ) {
     // Declare it here instead of being passed as a variable
     // For some reason it'll throw up an error if passed from alchitry_top
-    const CLK_FREQ = $is_sim() ? 1000 : 10000000
+    const CLK_FREQ = $is_sim() ? 1000 : 10000
     
     enum Testing {
         NOT_YET,
@@ -84,9 +84,6 @@ module alu_manual_tester
         io_button_edge.in = io_button_cond.out
         case(change.q) {
             Change.IDLE:
-                change.d = change.q
-                // Our FPGA's io_buttons are cooked and responding even when they aren't being pressed
-                /**
                 if (io_button_edge.out[0]) { // Top
                     change.d = Change.ADD
                 } else if (io_button_edge.out[2]) { // Bot
@@ -103,7 +100,6 @@ module alu_manual_tester
                         change.d = Change.FOCUS_OUT
                     }
                 }
-                */
             Change.ADD:
                 case(focus.q) {
                     Focus.A:
@@ -172,13 +168,12 @@ module alu_manual_tester
                 led[1] = alu.v
                 led[2] = alu.n
                 io_led[0] = alufn_dff.q
-                io_led[1] = current_test.q
+                io_led[1] = alu_fsm_tester.current_test
                 io_led[2][0] = alu_fsm_tester.completed
                 io_led[2][1] = alu_fsm_tester.failed
                 io_led[2][3:2] = testing.q
                 decimal_renderer.value = alu.out
         }
-        focus.d = io_dip[1][1:0] // REMOVE THIS WHEN SUBMITING. FPGA BUTTON SPOILT
         seg.values = decimal_renderer.digits
         io_select = ~seg.sel
         io_segment = ~seg.seg
@@ -205,7 +200,6 @@ module alu_manual_tester
                 a_dff.d = alu_fsm_tester.a
                 b_dff.d = alu_fsm_tester.b
                 alufn_dff.d = alu_fsm_tester.alufn
-                current_test.d = alu_fsm_tester.current_test
                 
                 // Complete test
                 testing.d = alu_fsm_tester.completed ? Testing.COMPLETED : testing.q

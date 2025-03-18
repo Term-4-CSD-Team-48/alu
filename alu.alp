@@ -104,12 +104,6 @@
             {
                 "file": {
                     "type": "Component",
-                    "path": "Miscellaneous/pipeline.luc"
-                }
-            },
-            {
-                "file": {
-                    "type": "Component",
                     "path": "Conditioning/button_conditioner.luc"
                 }
             },
@@ -117,12 +111,6 @@
                 "file": {
                     "type": "Component",
                     "path": "Pulses/edge_detector.luc"
-                }
-            },
-            {
-                "file": {
-                    "type": "Component",
-                    "path": "Miscellaneous/bin_to_dec.luc"
                 }
             },
             {
@@ -160,19 +148,25 @@
                     "type": "DiskFile",
                     "path": "source/signed_bin_to_dec.luc"
                 }
+            },
+            {
+                "file": {
+                    "type": "Component",
+                    "path": "Miscellaneous/pipeline.luc"
+                }
             }
         ],
         "constraintFiles": [
             {
                 "file": {
-                    "type": "Component",
-                    "path": "Constraints/io_v1.acf"
+                    "type": "DiskFile",
+                    "path": "constraint/alchitry.acf"
                 }
             },
             {
                 "file": {
-                    "type": "DiskFile",
-                    "path": "constraint/alchitry.acf"
+                    "type": "Component",
+                    "path": "Constraints/io_v1_pulldown.acf"
                 }
             }
         ],
