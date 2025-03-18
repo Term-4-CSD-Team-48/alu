@@ -1,10 +1,12 @@
 testbench alu_test_bench {
     sig clk
+    sig rst
     sig a[32] = 0
     sig b[32] = 0
     sig alufn[6] = 0
     
-    alu alu(#SIZE(32), .a(a), .b(b), .alufn(alufn))
+
+    alu alu(#SIZE(32), .a(a), .b(b), .alufn(alufn), .clk(0), .rst(0))
     
     const MAX_SIGNED = $resize($signed($pow(2, 32 - 1) - 1), 32)
     const MIN_SIGNED = $resize($signed(-$pow(2, 32 - 1)), 32)
